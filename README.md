@@ -7,3 +7,6 @@ Included is a basic Arduino sketch which reports the mV AC across the 22 ohm bur
 
 ![](https://github.com/Mottramlabs/4-Channel-Mains-Current-Sensor-ESP8266/blob/main/Pictures/PIX201136.jpg)
 
+### Schematic
+
+![https://github.com/Mottramlabs/4-Channel-Mains-Current-Sensor-ESP8266/blob/main/Pictures/SCH201136.pdf]()
