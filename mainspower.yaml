@@ -1,0 +1,237 @@
+substitutions:
+  update_time: never
+  disp_name: xxxxxxxx
+  ic1Volts: "xxx"
+
+esphome:
+  name: mainspower
+  platform: ESP8266
+  board: d1_mini
+
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+captive_portal:
+web_server:
+  port: 80
+ota:
+  password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+#.......................................
+#...Below script sets up PIN A and B ...
+#......then tells CT# to update.........
+#.......................................
+
+interval:
+  - interval: 15s
+    then:
+      - script.execute: readCTs
+script:
+  - id: readCTs
+    then:
+    # A	B  CT
+    # 0	0  1   
+    # 1	0  3
+    # 0	1  2
+    # 1	1  4
+    # setup for CT1 A=0 B=0 - ct1Amps
+      - output.turn_off: pinA
+      - output.turn_off: pinB
+      - delay: 2s
+      - component.update: ct1Amps
+      - delay: 500ms
+      - component.update: ct1Watts
+      - delay: 500ms
+    # setup for CT2 A=0 B=1 - ct2Amps
+      - output.turn_off: pinA
+      - output.turn_on: pinB
+      - delay: 2s
+      - component.update: ct2Amps
+      - delay: 500ms
+      - component.update: ct2Watts
+      - delay: 500ms
+    # setup for CT3 A=1 B=0 - ct3Amps
+      - output.turn_on: pinA
+      - output.turn_off: pinB
+      - delay: 2s
+      - component.update: ct3Amps
+      - delay: 500ms
+      - component.update: ct3Watts
+      - delay: 500ms
+    # setup for CT4 A=1 B=1 - ct4Amps
+      - output.turn_on: pinA
+      - output.turn_on: pinB
+      - delay: 2s
+      - component.update: ct4Amps
+      - delay: 500ms
+      - component.update: ct4Watts
+      - delay: 500ms
+
+  
+switch:
+  - platform: restart
+    name: "Restart"
+
+output:
+  - platform: gpio
+    pin: D1
+    id: pinB
+  - platform: gpio
+    pin: D2
+    id: pinA
+  
+sensor:
+  - platform: wifi_signal
+    name: "wifi_signal"
+    update_interval: 1min
+  - platform: uptime
+    name: "uptime"
+    id: Uptime    
+    update_interval: 1min
+    
+  - platform: adc
+    pin: A0
+    id: adc_sensor
+#    attenuation: 11db #esp32 only
+
+
+  - platform: ct_clamp
+    sensor: adc_sensor
+    name: ct1Amps
+    id: ct1Amps
+    unit_of_measurement: A
+    accuracy_decimals: 5
+    sample_duration: 200ms
+    update_interval: ${update_time}
+    filters:
+      - calibrate_linear:
+          # Measured value of 0 maps to 0A
+          - 0 -> 0
+          # Known load: 5.706A
+          # Raw AC Value in logs: 0.011A 
+          - 0.011 -> 5.700
+
+  - platform: ct_clamp
+    sensor: adc_sensor
+    name: ct2Amps
+    id: ct2Amps
+    unit_of_measurement: A
+    accuracy_decimals: 5
+    sample_duration: 200ms
+    update_interval: ${update_time}
+    filters:
+      - calibrate_linear:
+          # Measured value of 0 maps to 0A
+          - 0 -> 0
+          # Known load: 5.706A
+          # Raw AC Value in logs: 0.011A 
+          - 0.011 -> 5.700
+
+  - platform: ct_clamp
+    sensor: adc_sensor
+    name: ct3Amps
+    id: ct3Amps
+    unit_of_measurement: A
+    accuracy_decimals: 5
+    sample_duration: 200ms
+    update_interval: ${update_time}
+    filters:
+      - calibrate_linear:
+          # Measured value of 0 maps to 0A
+          - 0 -> 0
+          # Known load: 5.706A
+          # Raw AC Value in logs: 0.011A 
+          - 0.011 -> 5.700
+
+  - platform: ct_clamp
+    sensor: adc_sensor
+    name: ct4Amps
+    id: ct4Amps
+    unit_of_measurement: A
+    accuracy_decimals: 5
+    sample_duration: 200ms
+    update_interval: ${update_time}
+    filters:
+      - calibrate_linear:
+          # Measured value of 0 maps to 0A
+          - 0 -> 0
+          # Known load: 5.706A
+          # Raw AC Value in logs: 0.011A 
+          - 0.011 -> 5.700
+
+
+#Watts per channel
+  - platform: template
+    name: ${disp_name} CT1 Watts
+    id: ct1Watts
+    lambda: return id(ct1Amps).state * ${ic1Volts};
+    accuracy_decimals: 0
+    unit_of_measurement: W
+    icon: "mdi:flash-circle"
+    update_interval: ${update_time}         
+  - platform: template
+    name: ${disp_name} CT2 Watts
+    id: ct2Watts
+    lambda: return id(ct2Amps).state * ${ic1Volts};
+    accuracy_decimals: 0
+    unit_of_measurement: W
+    icon: "mdi:flash-circle"
+    update_interval: ${update_time}         
+  - platform: template
+    name: ${disp_name} CT3 Watts
+    id: ct3Watts
+    lambda: return id(ct3Amps).state * ${ic1Volts};
+    accuracy_decimals: 0
+    unit_of_measurement: W
+    icon: "mdi:flash-circle"
+    update_interval: ${update_time}         
+  - platform: template
+    name: ${disp_name} CT4 Watts
+    id: ct4Watts
+    lambda: return id(ct4Amps).state * ${ic1Volts};
+    accuracy_decimals: 0
+    unit_of_measurement: W
+    icon: "mdi:flash-circle"
+    update_interval: ${update_time}  
+
+
+
+
+
+#Total Amps   
+  - platform: template
+    name: ${disp_name} Total Amps
+    id: totalAmps
+    # Edit below to add all 3 phases for total Amps
+    lambda: return id(ct1Amps).state + id(ct2Amps).state + id(ct3Amps).state;
+    accuracy_decimals: 2
+    unit_of_measurement: A
+    icon: "mdi:flash"
+    update_interval: 15s         
+#Total Watts
+  - platform: template
+    name: ${disp_name} Total Watts
+    id: totalWatts
+    lambda: return id(totalAmps).state * ${ic1Volts};
+    accuracy_decimals: 1
+    unit_of_measurement: W
+    icon: "mdi:flash-circle"
+    update_interval: 15s
+#kWh
+  - platform: total_daily_energy
+    name: ${disp_name} Total kWh
+    power_id: totalWatts
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh   
